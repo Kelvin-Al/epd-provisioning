@@ -1,7 +1,8 @@
 # E+PD experiments on a single NVIDIA node
 
-> **GPU validation pending.** Run the two-GPU smoke command below before
-> using this package for a performance experiment.
+> The H800 smoke test and low-load MMMU replay used CUDA 12.9 and the
+> PyTorch sampler. GPU split comparisons and saturation throughput remain
+> to be validated.
 
 Use one Linux node with an NVIDIA driver compatible with the vLLM CUDA wheel,
 Python 3.12, local scratch, and at least two allocated GPUs. Each GPU hosts one
@@ -22,12 +23,20 @@ space for the embeddings generated during one wave.
 
 ## Install and send a real request
 
-From the package directory on the allocated Linux node:
+From the package directory on an allocated x86-64 Linux node with a driver
+compatible with CUDA 12.9, use the H800 configuration below. The vLLM wheel
+and PyTorch index must match. Set the sampler environment variable before
+starting each smoke or benchmark run.
 
 ```bash
 python3.12 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r requirements-cluster.txt
+VLLM_WHEEL='https://github.com/vllm-project/vllm/releases/download/v0.22.0/vllm-0.22.0%2Bcu129-cp38-abi3-manylinux_2_28_x86_64.whl'
+VLLM_SHA256='405319a7fde1af416eef6cbab0315d354d8b9c1a45b97097a9f1c3707bf05f74'
+python -m pip install --extra-index-url https://download.pytorch.org/whl/cu129 \
+  "${VLLM_WHEEL}#sha256=${VLLM_SHA256}" -r requirements-cluster.txt
+python -m pip check
+export VLLM_USE_FLASHINFER_SAMPLER=0
 python epd.py validate
 mkdir -p runs
 python cluster.py prepare --dataset mmmu --samples 32 --output workload-mmmu
@@ -100,7 +109,6 @@ within both latency budgets uses all measured arrivals, including errors,
 unfinished work and client drops in the denominator. Undefined TPOT does not
 qualify. A nonzero client-drop count indicates the load driver hit its in-flight
 cap. Use separate campaign criteria for model quality and hardware acceptance.
-Physical multi-card validation of this package is pending.
 
 The launcher follows the [vLLM v0.22.0 E+PD interface](https://docs.vllm.ai/en/v0.22.0/examples/disaggregated/disaggregated_encoder/)
 and [multimodal request IDs](https://docs.vllm.ai/en/v0.22.0/features/multimodal_inputs/#cached-inputs).

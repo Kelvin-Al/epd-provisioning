@@ -1,8 +1,10 @@
 # EPD GPU provisioning
 
-> **GPU validation pending.** This package has passed local CPU checks.
-> The packaged vLLM deployment and benchmark still need end-to-end validation
-> on a multi-GPU NVIDIA Linux node. GPU results in the paper come from the original experiment setup.
+> **Validated on two NVIDIA H800 GPUs.** The 1E:1PD smoke test wrote encoder
+> cache files and returned a complete streamed response with Qwen2.5-VL-3B-Instruct.
+> In a 30-second low-load MMMU validation replay, 20 of 21 requests completed
+> within the window, with zero errors and one unfinished request.
+> GPU split comparisons and saturation throughput remain to be validated.
 
 Start with the [cluster quickstart](CLUSTER.md) to prepare MMMU, launch vLLM
 workers, and measure E+PD allocations.

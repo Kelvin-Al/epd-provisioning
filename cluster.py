@@ -183,8 +183,11 @@ def run(args):
     if args.command == "bench" and not args.rps:
         raise ValueError("bench needs at least one --rps")
     executable = shutil.which("vllm")
-    if not executable or importlib.metadata.version("vllm") != VLLM_VERSION:
+    if not executable:
         raise ValueError(f"activate the environment containing vLLM {VLLM_VERSION}")
+    installed_version = importlib.metadata.version("vllm")
+    if installed_version.split("+", 1)[0] != VLLM_VERSION:
+        raise ValueError(f"expected vLLM {VLLM_VERSION}, found {installed_version}")
     workload = load_workload(args.workload)
     if any(len(images) > args.max_images for _, images in workload):
         raise ValueError("raise --max-images or prepare a workload with fewer images per request")
@@ -202,7 +205,8 @@ def run(args):
         identity.update(hashlib.sha256(path.read_bytes()).digest())
     write_json(args.output / "plan.json", {
         "workload_sha256": identity.hexdigest(), "model": args.model,
-        "model_revision": args.model_revision, "vllm": VLLM_VERSION, "gpus": len(gpus),
+        "model_revision": args.model_revision, "vllm": installed_version, "gpus": len(gpus),
+        "flashinfer_sampler": os.getenv("VLLM_USE_FLASHINFER_SAMPLER"),
         "splits": list(dict.fromkeys(splits)), "provision": plan, "rps": args.rps,
         "seed": args.seed, "repetitions": args.repetitions, "warmup_s": args.warmup,
         "duration_s": args.duration, "max_tokens": args.max_tokens, "e_only": args.e_only,
