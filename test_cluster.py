@@ -3,15 +3,58 @@
 import json
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from io import StringIO
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import AsyncMock, patch
 
-from cluster import devices, worker_command
+from cluster import devices, main, worker_command
 from cluster_data import load_workload, normalize
 from cluster_load import arrivals, request, summarize
 
 
 class ClusterTests(unittest.TestCase):
+    def test_bench_reserves_disjoint_ports_and_rejects_overflow(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "workload.json").write_text("{}", encoding="utf-8")
+            output = root / "output"
+            argv = [
+                "cluster.py", "bench", "--gpus", "0,1,2,3", "--workload", str(root),
+                "--output", str(output), "--split", "1", "--split", "3",
+                "--rps", "80", "--repetitions", "2", "--base-port",
+            ]
+            wave = AsyncMock(side_effect=lambda *args: {
+                "throughput_rps": 42, "client_dropped": 0,
+            })
+            aiohttp = SimpleNamespace(ClientError=OSError)
+            with (
+                patch("cluster.sys.platform", "linux"),
+                patch.dict("cluster.sys.modules", {"aiohttp": aiohttp}),
+                patch.dict("cluster.os.environ", {"CUDA_VISIBLE_DEVICES": "0,1,2,3"}),
+                patch("cluster.shutil.which", return_value="vllm"),
+                patch("cluster.importlib.metadata.version", return_value="0.22.0+cu129"),
+                patch("cluster.load_workload", return_value=[]),
+                patch("cluster.run_wave", wave),
+                patch("cluster.signal.signal"),
+                patch("cluster.sys.argv", [*argv, "65521"]),
+                patch("sys.stderr", new_callable=StringIO) as stderr,
+            ):
+                with self.assertRaises(SystemExit) as error:
+                    main()
+                self.assertEqual(error.exception.code, 2)
+                self.assertIn("fit all 16 worker ports", stderr.getvalue())
+                wave.assert_not_awaited()
+                self.assertFalse(output.exists())
+                with patch("cluster.sys.argv", [*argv, "65520"]), redirect_stdout(StringIO()):
+                    main()
+
+            self.assertEqual(
+                [(call.args[1].base_port, call.args[3]) for call in wave.await_args_list],
+                [(65520, 1), (65524, 3), (65528, 3), (65532, 1)],
+            )
+
     def test_worker_roles_share_cache_and_preserve_gpu_allocation(self):
         args = SimpleNamespace(
             workload=Path("."), model="fixture", context=1024, max_images=5, e_memory=0.01,

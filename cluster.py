@@ -170,8 +170,8 @@ def run(args):
     if not args.gpus and visible is None:
         raise ValueError("set --gpus or CUDA_VISIBLE_DEVICES to the GPUs allocated to this job")
     gpus = devices(args.gpus or visible, visible)
-    if len(gpus) < (1 if args.e_only else 2) or args.base_port + len(gpus) - 1 > 65535:
-        raise ValueError("allocate at least two GPUs and a valid consecutive port range")
+    if len(gpus) < (1 if args.e_only else 2):
+        raise ValueError("allocate at least two GPUs for E+PD or one for encoder-only runs")
     if (args.ttft_ms is None) != (args.tpot_ms is None):
         raise ValueError("supply both latency limits together")
     if (args.e_rate is None) != (args.pd_rate is None) or (args.e_rate and args.splits):
@@ -199,6 +199,12 @@ def run(args):
         raise ValueError("each split must leave at least one GPU for both E and PD")
     if args.e_only:
         gpus = gpus[:1]
+    splits = list(dict.fromkeys(splits))
+    rates = args.rps or [None]
+    repeats = args.repetitions if args.command == "bench" else 1
+    ports_needed = len(gpus) * len(splits) * len(rates) * repeats
+    if args.base_port + ports_needed - 1 > 65535:
+        raise ValueError(f"choose a lower --base-port to fit all {ports_needed} worker ports")
     args.output.mkdir()
     identity = hashlib.sha256((args.workload / "workload.json").read_bytes())
     for path in sorted({p for _, images in workload for p in images}):
@@ -207,7 +213,7 @@ def run(args):
         "workload_sha256": identity.hexdigest(), "model": args.model,
         "model_revision": args.model_revision, "vllm": installed_version, "gpus": len(gpus),
         "flashinfer_sampler": os.getenv("VLLM_USE_FLASHINFER_SAMPLER"),
-        "splits": list(dict.fromkeys(splits)), "provision": plan, "rps": args.rps,
+        "splits": splits, "provision": plan, "rps": args.rps, "base_port": args.base_port,
         "seed": args.seed, "repetitions": args.repetitions, "warmup_s": args.warmup,
         "duration_s": args.duration, "max_tokens": args.max_tokens, "e_only": args.e_only,
         "ttft_ms": args.ttft_ms, "tpot_ms": args.tpot_ms, "max_inflight": args.max_inflight,
@@ -216,22 +222,23 @@ def run(args):
         "encoder_only_flag": args.encoder_only, "request_timeout_s": args.request_timeout,
     })
     records = []
-    repeats = args.repetitions if args.command == "bench" else 1
     for repetition in range(repeats):
         order = splits if repetition % 2 == 0 else list(reversed(splits))
-        for encoders in dict.fromkeys(order):
-            for rate in args.rps or [None]:
+        for encoders in order:
+            for rate in rates:
+                wave_port = args.base_port + len(records) * len(gpus)
+                wave_args = argparse.Namespace(**(vars(args) | {"base_port": wave_port}))
                 directory = args.output / f"wave-{len(records) + 1:03d}"
                 directory.mkdir()
                 result = asyncio.run(
                     run_wave(
-                        executable, args, gpus, encoders, workload, directory,
+                        executable, wave_args, gpus, encoders, workload, directory,
                         rate, args.seed + repetition,
                     )
                 )
                 result.update(
                     encoder_gpus=encoders, pd_gpus=len(gpus) - encoders,
-                    offered_rps=rate, seed=args.seed + repetition,
+                    offered_rps=rate, seed=args.seed + repetition, base_port=wave_port,
                 )
                 records.append(result)
                 write_json(directory / "summary.json", result)

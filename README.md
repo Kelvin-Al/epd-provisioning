@@ -4,10 +4,25 @@
 > cache files and returned a complete streamed response with Qwen2.5-VL-3B-Instruct.
 > In a 30-second low-load MMMU validation replay, 20 of 21 requests completed
 > within the window, with zero errors and one unfinished request.
-> GPU split comparisons and saturation throughput remain to be validated.
 
 Start with the [cluster quickstart](CLUSTER.md) to prepare MMMU, launch vLLM
 workers, and measure E+PD allocations.
+
+## Four-H800 split comparison
+
+**2E:2PD achieved the highest completed-request throughput in both rounds**
+of a same-node comparison against 1E:3PD and 3E:1PD. Each round cycled through the
+same 128 MMMU validation requests with the same arrival schedule across
+splits, offering 100 requests/s for a 45-second measurement window after
+warmup. All six runs recorded zero request errors and zero client drops.
+Unfinished requests at the end of the window were retained in the counts.
+
+Absolute throughput varied across nodes. In particular, 3E:1PD completed
+requests substantially faster in the initial sweep on another H800 node.
+That sweep also hit the client concurrency limit for 3E:1PD at its highest
+offered rate. The ranking above comes from the matched comparison on the
+same node. Capacity estimates are specific to the measured configuration
+and workload.
 
 This example is a fresh Python implementation of the allocation rule and encoder
 resource-demand method in *Queueing-Theoretic GPU Provisioning for

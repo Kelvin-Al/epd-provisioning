@@ -1,8 +1,8 @@
 # E+PD experiments on a single NVIDIA node
 
 > The H800 smoke test and low-load MMMU replay used CUDA 12.9 and the
-> PyTorch sampler. GPU split comparisons and saturation throughput remain
-> to be validated.
+> PyTorch sampler. The [four-H800 comparison](README.md#four-h800-split-comparison)
+> reports the same-node results and cross-node variation.
 
 Use one Linux node with an NVIDIA driver compatible with the vLLM CUDA wheel,
 Python 3.12, local scratch, and at least two allocated GPUs. Each GPU hosts one
@@ -101,6 +101,9 @@ measures that allocation once per rate and repetition. Each repetition uses
 the same seeded Poisson schedule and image order across splits. The split order
 reverses on alternating repetitions. Per-request IDs provide cold encoder
 inputs even when replay repeats the same images.
+Each wave uses a new consecutive block of loopback ports starting from
+`--base-port`, with one port per active worker. For concurrent runs on the
+same node, choose non-overlapping ranges.
 
 Outputs include the plan, workload digest, worker logs, per-request timing and
 wave summaries. Throughput counts completions inside the timed window. Latency
