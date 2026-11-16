@@ -1,0 +1,21 @@
+{
+  "gpus": 4,
+  "sampling_rps": 2,
+  "deployment": {
+    "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+    "kv_cache_memory_bytes": 1073741824
+  },
+  "pd_chunk_tokens": 512,
+  "encoder_max_seqs": 1,
+  "replay": {
+    "buckets": "{(1120, 1120, 1): 0.65, (1344, 1344, 1): 0.35}",
+    "input_len": 128,
+    "output_len": 192,
+    "range_ratio": 0.25,
+    "prompts": 480,
+    "seed": 9197
+  },
+  "runner_sha256": "53e58c6068209d9b35a38c8c66901748d56598e83f6fb7ea682135cb8b198243",
+  "method_runner_sha256": "7fd1314de3950b9c35a1f9befa27b3d657b3e5a7cba3506346208cd738c0662b",
+  "primary_metric": "PD successful completions per second in central 60% of actual arrivals"
+}

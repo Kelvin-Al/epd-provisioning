@@ -8,7 +8,33 @@
 Start with the [cluster quickstart](CLUSTER.md) to prepare MMMU, launch vLLM
 workers, and measure E+PD allocations.
 
-## Four-H800 split comparison
+## Four-H800 allocator replay
+
+On one H800 node, the allocator selected **1E:3PD** from live request-shape
+samples for a synthetic multimodal workload with midsize images and long
+generations. The two splits used the same four GPUs, Qwen2.5-VL-3B-Instruct, the
+vLLM 0.33.0 trace deployment, and identical seeded 480-request waves.
+
+| Actual offered requests/s | 2E:2PD completions/s | 1E:3PD completions/s | Paired changes |
+| ---: | ---: | ---: | ---: |
+| 6.07 | 6.11–6.13 | 6.03–6.09 | −0.7%, −1.4% |
+| 10.11 | 8.82–8.83 | 10.15–10.18 | +15.5%, +15.0% |
+| 15.17 | 8.55–8.90 | 12.91–12.98 | +51.1%, +46.0% |
+
+Completion rates use the middle 60% of actual arrivals. At the highest
+load, P90 time to first token fell from 19.7–23.5 s to 6.0–7.8 s. All 5,760
+requests completed across two rounds, including drain. The gain appeared
+when the equal split's PD pool queued requests. At low load, both splits
+kept up with arrivals. This run shows that the allocator can choose an uneven
+split and improve serving under a PD-heavy workload. The measured gains apply
+to this workload and node.
+
+[Experiment code](experiments/four-gpu/) ·
+[Frozen plan](experiments/four-gpu/results/synthetic/plan.json) ·
+[Measured results](experiments/four-gpu/results/synthetic/results.json) ·
+[Evidence scope and MMMU follow-up](https://github.com/Kelvin-Al/epd-provisioning/issues/1)
+
+## Earlier four-H800 MMMU split sweep
 
 **2E:2PD achieved the highest completed-request throughput in both rounds**
 of a same-node comparison against 1E:3PD and 3E:1PD. Each round cycled through the

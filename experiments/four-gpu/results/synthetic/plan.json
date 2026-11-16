@@ -1,0 +1,124 @@
+{
+  "gpus": 4,
+  "sampling_rps": 2,
+  "deployment": {
+    "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+    "kv_cache_memory_bytes": 1073741824
+  },
+  "pd_chunk_tokens": 512,
+  "encoder_max_seqs": 1,
+  "replay": {
+    "buckets": "{(1120, 1120, 1): 0.65, (1344, 1344, 1): 0.35}",
+    "input_len": 128,
+    "output_len": 192,
+    "range_ratio": 0.25,
+    "prompts": 480,
+    "seed": 9197
+  },
+  "runner_sha256": "53e58c6068209d9b35a38c8c66901748d56598e83f6fb7ea682135cb8b198243",
+  "method_runner_sha256": "7fd1314de3950b9c35a1f9befa27b3d657b3e5a7cba3506346208cd738c0662b",
+  "primary_metric": "PD successful completions per second in central 60% of actual arrivals",
+  "calibration_input_hashes": {
+    "model_sha256": "91e22357828838743e77796a0eae05bb0e9cc0ed54fb46eaf06e04e2a63025ec",
+    "workload_sha256": "c5977df3a2e03bd635237439d85b47139252f5a8cb6f74a35a60900ca9dc4afd"
+  },
+  "public_planner_sha256": "6bf4ea101fc12da1ca9166121a09f362b22feff3bf45ccf94b037dec1d93ce68",
+  "native_plan_sha256": "dbaa54289d688a50d92b835ed6b6eaefa678bb877fcd205b9b08745a4f3e956f",
+  "rates_are_model_estimates": true,
+  "stage_rate_inputs": {
+    "e_rate_upper_bound_rps": 22.34505989136755,
+    "pd_rate_rps": 4.008937874269575,
+    "encoder_bottleneck_lane": "X",
+    "mean_normalized_lane_ms": {
+      "H": 16.190241214180805,
+      "M": 20.29265174386643,
+      "C": 0.0,
+      "X": 44.752621154813944,
+      "G": 33.08425601872203,
+      "R": 14.57831524797489,
+      "media_decode": 27.34590377851397
+    },
+    "mean_serial_e_ms": 69.81321005803976,
+    "request_count": 480,
+    "model_sha256": "91e22357828838743e77796a0eae05bb0e9cc0ed54fb46eaf06e04e2a63025ec",
+    "workload_sha256": "c5977df3a2e03bd635237439d85b47139252f5a8cb6f74a35a60900ca9dc4afd",
+    "encoder_visual_token_range": [
+      1600,
+      7744
+    ],
+    "pd_rate_bounds_rps": [
+      4.008937874269575,
+      4.421644985180291
+    ],
+    "basis": "encoder_load_upper_bound_and_pd_packing_model"
+  },
+  "decision": {
+    "encoder_gpus": 1,
+    "pd_gpus": 3,
+    "optimal_encoder_gpu_counts": [
+      1
+    ],
+    "fractional_encoder_gpus": 0.6084751027029096,
+    "fractional_boundary_rps": 13.596412612302537,
+    "boundary_rps": 12.026813622808724,
+    "nominal_boundary_at_selected_split_rps": 12.026813622808724,
+    "stage_rates_rps": {
+      "e": 22.34505989136755,
+      "pd": 4.008937874269575
+    },
+    "rate_ratio": 5.573810468549304,
+    "optimal_ratio_interval": [
+      2.0,
+      null
+    ],
+    "multiplicative_ratio_margin": 2.786905234274652,
+    "bottleneck": "pd"
+  },
+  "encoder_counts": {
+    "even": 2,
+    "method": 1
+  },
+  "predicted_even_rps": 8.01787574853915,
+  "waves": [
+    {
+      "buckets": "{(1120, 1120, 1): 0.65, (1344, 1344, 1): 0.35}",
+      "input_len": 128,
+      "output_len": 192,
+      "range_ratio": 0.25,
+      "prompts": 480,
+      "seed": 9197,
+      "name": "low",
+      "rate": 6.013
+    },
+    {
+      "buckets": "{(1120, 1120, 1): 0.65, (1344, 1344, 1): 0.35}",
+      "input_len": 128,
+      "output_len": 192,
+      "range_ratio": 0.25,
+      "prompts": 480,
+      "seed": 9197,
+      "name": "between",
+      "rate": 10.022
+    },
+    {
+      "buckets": "{(1120, 1120, 1): 0.65, (1344, 1344, 1): 0.35}",
+      "input_len": 128,
+      "output_len": 192,
+      "range_ratio": 0.25,
+      "prompts": 480,
+      "seed": 9197,
+      "name": "overload",
+      "rate": 15.034
+    }
+  ],
+  "orders": [
+    [
+      "even",
+      "method"
+    ],
+    [
+      "method",
+      "even"
+    ]
+  ]
+}
