@@ -20,11 +20,16 @@ if [[ "${EPD_METHOD_IN_CONTAINER:-0}" != 1 ]]; then
     mkdir -p "$root/apptainer-tmp"
     export APPTAINER_TMPDIR="$root/apptainer-tmp"
     calibration_dir=$(dirname "$calibration")
+    mmmu_bind=()
+    if [[ -n "${EPD_MMMU_SOURCE:-}" ]]; then
+        mmmu_bind=(--bind "$EPD_MMMU_SOURCE:$EPD_MMMU_SOURCE:ro")
+    fi
     exec apptainer exec --nv \
         --bind "$root:$root" \
         --bind "$source_dir:$source_dir:ro" \
         --bind "$calibration_dir:$calibration_dir:ro" \
         --bind "$HF_HOME:$HF_HOME" \
+        "${mmmu_bind[@]}" \
         "$image" env EPD_METHOD_IN_CONTAINER=1 bash "$root/experiment.sbatch"
 fi
 
@@ -48,11 +53,25 @@ if len(devices) != int(sys.argv[1]) or any("H800" not in device for device in de
 print(vllm.__version__, torch.__version__, torch.version.cuda, devices)
 print(torch.ones(1, device="cuda"))
 PY
+cd "$root"
+options=()
+if [[ -n "${EPD_MMMU_REPLAY:-}" ]]; then
+    options=(--all-splits --sample-rate 5)
+    workload="$EPD_MMMU_REPLAY"
+elif [[ -n "${EPD_MMMU_SOURCE:-}" ]]; then
+    cohort="cohort-${SLURM_JOB_ID:?}"
+    python3 "$root/mmmu.py" --source "$EPD_MMMU_SOURCE" \
+        --output "$cohort" --calibration "$calibration"
+    options=(--all-splits --sample-rate 5)
+    workload="$cohort/replay.json"
+else
+    workload="$root/workload.json"
+fi
 python3 "$root/experiment.py" \
     --source "$source_dir" \
     --calibration "$calibration" \
     --planner "$root/planner.py" \
-    --workload "$root/workload.json" \
+    --workload "$workload" \
     --output "$root/results-${SLURM_JOB_ID:?}" \
     --base-port "$((22000 + (SLURM_JOB_ID % 500) * 50))" \
-    --gpus "$gpus"
+    --gpus "$gpus" "${options[@]}"

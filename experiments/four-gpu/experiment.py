@@ -30,12 +30,62 @@ def execute(*args):
     subprocess.run(list(map(str, args)), check=True)
 
 
+def custom_image_runner(original, destination):
+    """Add a dataset option to the prepared upstream runner without editing it."""
+    source = original.read_text(encoding="utf-8")
+    start = source.index('                    "--dataset-name",\n')
+    end = source.index('                    "--ignore-eos",\n', start)
+    original_arguments = source[start:end]
+    if '"random-mm"' not in original_arguments or '"--random-range-ratio"' not in original_arguments:
+        raise ValueError("Unsupported vLLM benchmark argument layout")
+    replacement = (
+        '                    *(["--dataset-name", "custom_image",\n'
+        '                       "--dataset-path", wave["dataset_path"],\n'
+        '                       "--custom-output-len", str(wave["output_len"]),\n'
+        '                       "--custom-ensure-client-side-data", "--no-oversample"]\n'
+        '                      if "dataset_path" in wave else [\n'
+        + original_arguments
+        + '                      ]),\n'
+    )
+    script = source[:start] + replacement + source[end:]
+    scrape = "                    log.flush()\n                    time.sleep(2)"
+    if script.count(scrape) != 1:
+        raise ValueError("Unsupported worker-scrape loop")
+    script = script.replace(scrape, scrape.replace("sleep(2)", "sleep(1)"))
+    compile(script, str(destination), "exec")
+    destination.write_text(script, encoding="utf-8")
+    return destination
+
+
+def resolve_cohort(replay, output):
+    source = Path(replay["dataset_path"]).resolve()
+    if digest(source) != replay["cohort_sha256"]:
+        raise ValueError("The MMMU request manifest changed")
+    image_hash = sha256()
+    rows = []
+    for line in source.read_text(encoding="utf-8").splitlines():
+        row = json.loads(line)
+        image, = (Path(name).resolve() for name in row["image_files"])
+        if not image.is_relative_to(source.parent):
+            raise ValueError("Cohort image is outside the cohort directory")
+        image_hash.update(image.read_bytes())
+        row["image_files"] = [str(image)]
+        rows.append(json.dumps(row, ensure_ascii=False))
+    if len(rows) != replay["prompts"] or image_hash.hexdigest() != replay["image_bytes_sha256"]:
+        raise ValueError("The MMMU image cohort changed")
+    path = output / "runtime-cohort.jsonl"
+    path.write_text("\n".join(rows) + "\n", encoding="utf-8")
+    return path
+
+
 def benchmark(args, config, name, encoders, waves, base_port, trace=None):
     waves_path = args.output / f"{name}-waves.json"
+    if args.runtime_dataset is not None:
+        waves = [{**wave, "dataset_path": str(args.runtime_dataset)} for wave in waves]
     write(waves_path, waves)
     target = args.output / name
     execute(
-        sys.executable, args.source / "run_epd_superpod.py",
+        sys.executable, args.runner,
         "--repo", args.source, "--output", target, "--waves", waves_path,
         "--encoders", encoders, "--pd", args.gpus - encoders,
         "--encoder-max-seqs", 1, "--model", config["deployment"]["model"],
@@ -123,8 +173,15 @@ def freeze(args, native, frozen, workload, replay, settings):
         "overload": round(1.25 * capacity_rps, 3),
     }
     waves = [{**replay, "name": label, "rate": rate} for label, rate in rates.items()]
-    if min(rates.values()) <= 0 or replay["prompts"] / max(rates.values()) < 24:
+    minimum_seconds = 15 if "dataset_path" in replay else 24
+    if min(rates.values()) <= 0 or replay["prompts"] / max(rates.values()) < minimum_seconds:
         raise ValueError("Planned arrival window is too short for worker counter sampling")
+    counts = {"even": even, "method": recommended}
+    orders = [["even", "method"], ["method", "even"]] if recommended != even else []
+    if args.all_splits:
+        counts = {f"{e}e": e for e in range(1, args.gpus)}
+        order = list(counts)
+        orders = [order, list(reversed(order))]
     return {
         **settings,
         "calibration_input_hashes": input_hashes,
@@ -133,10 +190,10 @@ def freeze(args, native, frozen, workload, replay, settings):
         "rates_are_model_estimates": True,
         "stage_rate_inputs": estimate,
         "decision": decision,
-        "encoder_counts": {"even": even, "method": recommended},
+        "encoder_counts": counts,
         "predicted_even_rps": baseline_rps,
         "waves": waves,
-        "orders": [["even", "method"], ["method", "even"]] if recommended != even else [],
+        "orders": orders,
     }
 
 
@@ -145,19 +202,26 @@ def compare(plan, observations):
     for round_number in range(1, len(plan["orders"]) + 1):
         for wave in plan["waves"]:
             rows = {
-                row["arm"]: row for row in observations
+                row["encoder_gpus"]: row["pd_completed_rps"] for row in observations
                 if row["round"] == round_number and row["wave"] == wave["name"]
             }
-            if set(rows) != {"even", "method"}:
+            if set(rows) != set(plan["encoder_counts"].values()):
                 continue
-            baseline = rows["even"]["pd_completed_rps"]
-            difference = rows["method"]["pd_completed_rps"] - baseline
+            recommended = plan["decision"]["encoder_gpus"]
+            baseline = rows[plan["gpus"] // 2]
+            observed = rows[recommended]
+            best = max(rows.values())
+            difference = observed - baseline
             pairs.append({
                 "round": round_number,
                 "wave": wave["name"],
                 "offered_rps": wave["rate"],
                 "pd_completion_difference_rps": difference,
                 "pd_completion_difference_percent": 100 * difference / baseline if baseline else None,
+                "recommended_encoder_gpus": recommended,
+                "recommended_rank": 1 + sum(rate > observed for rate in rows.values()),
+                "best_encoder_gpu_counts": [split for split, rate in rows.items() if rate == best],
+                "gap_to_best_percent": 100 * (best - observed) / best if best else None,
             })
     return pairs
 
@@ -169,10 +233,16 @@ def run(args):
     frozen = args.output / "calibration.json"
     frozen.write_bytes(args.calibration.read_bytes())
     runner = args.source / "run_epd_superpod.py"
+    args.runner = (
+        custom_image_runner(runner, args.output / "custom-image-runner.py")
+        if "dataset_path" in replay else runner
+    )
+    args.runtime_dataset = resolve_cohort(replay, args.output) if "dataset_path" in replay else None
     settings = {
         "gpus": args.gpus, "sampling_rps": args.sample_rate, "deployment": config["deployment"],
         "pd_chunk_tokens": config["pd"]["chunk_tokens"], "encoder_max_seqs": 1,
-        "replay": replay, "runner_sha256": digest(runner),
+        "replay": replay, "runner_sha256": digest(args.runner),
+        "upstream_runner_sha256": digest(runner),
         "method_runner_sha256": digest(Path(__file__)),
         "primary_metric": "PD successful completions per second in central 60% of actual arrivals",
     }
@@ -242,13 +312,15 @@ def main():
     parser.add_argument("--gpus", type=int, default=4)
     parser.add_argument("--sample-rate", type=float, default=2)
     parser.add_argument("--base-port", type=int, default=22340)
+    parser.add_argument("--all-splits", action="store_true")
     args = parser.parse_args()
     if args.gpus < 4 or args.gpus % 2:
         parser.error("An even GPU budget of at least four is required")
     if not math.isfinite(args.sample_rate) or args.sample_rate <= 0:
         parser.error("The sampling rate must be finite and positive")
-    if not 1024 <= args.base_port <= 65535 - (5 * args.gpus + 4):
-        parser.error("Base port must leave room for all five port blocks")
+    last_port = (2 * (args.gpus - 1) if args.all_splits else 4) * (args.gpus + 1) + args.gpus
+    if not 1024 <= args.base_port <= 65535 - last_port:
+        parser.error("Base port must leave room for all port blocks")
     for name in ("source", "calibration", "planner", "workload", "output"):
         setattr(args, name, getattr(args, name).resolve())
     run(args)

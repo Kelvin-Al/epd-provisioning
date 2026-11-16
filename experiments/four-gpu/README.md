@@ -42,3 +42,31 @@ export EPD_SIF=<apptainer_image>
 export EPD_HF_CACHE=<model_cache>
 sbatch --account=<slurm_account> --partition=normal experiment.sbatch
 ```
+
+## MMMU replay and ranking
+
+Prepare the cohort from the repository root, then stage the resulting
+`cohort/` directory next to `experiment.sbatch` and `planner.py`.
+
+```bash
+python cluster.py prepare --dataset mmmu --samples 800 --output mmmu-source
+python experiments/four-gpu/mmmu.py --source mmmu-source \
+    --calibration "$EPD_CALIBRATION" --output cohort --prompts 720 --output-len 64
+export EPD_MMMU_REPLAY=cohort/replay.json
+sbatch --account=<slurm_account> --partition=normal experiment.sbatch
+```
+
+The cohort keeps the first 720 eligible single-image validation questions
+from the manifest. Images use JPEG transport. Images outside the calibrated
+visual-token range are resized on the Qwen2.5-VL image grid while preserving
+aspect ratio to within grid rounding. The sampling and measured waves replay
+the same seeded order with a fixed generation length of 64 tokens. This is
+a serving-load benchmark.
+
+MMMU mode samples the cohort once, creates a temporary copy of the deployed
+runner with vLLM's `custom_image` dataset option, and freezes its sizing result
+before comparing all feasible splits. Round two reverses split order. For
+each load and round, the results record the recommendation's measured rank
+and percentage gap to the best observed completion rate. Use the highest
+offered load as the primary ranking and include the queue and latency
+results when interpreting small gaps.
