@@ -34,6 +34,41 @@ to this workload and node.
 [Measured results](experiments/four-gpu/results/synthetic/results.json) ·
 [Evidence scope and MMMU follow-up](https://github.com/Kelvin-Al/epd-provisioning/issues/1)
 
+### MMMU follow-up
+
+Using the same sizing and replay procedure on a fixed MMMU validation cohort,
+the allocator recommended **2E:2PD**, the equal split. Each of the three
+feasible splits ran at three loads on one four-H800 node, in two reversed
+orders. All 12,960 measured requests completed, including drain.
+
+At the highest load, 34.27 actual offered requests/s, 2E:2PD ranked **second
+in both rounds**. Its in-window completion rate was 82.4% and 79.9% of the
+observed best, 1E:3PD. As the recommendation coincided with the equal split,
+its measured gain over equal allocation was zero.
+
+| Round | 1E:3PD completions/s | 2E:2PD completions/s (recommended) | 3E:1PD completions/s | Gap to best |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 33.79 | 27.84 | 14.18 | 17.6% |
+| 2 | 34.01 | 27.18 | 14.33 | 20.1% |
+
+At that load, P90 time to first token was 4.35–5.51 s for the recommendation
+and 0.37–0.46 s for the measured winner. At the two lower loads, the
+recommendation was within 1.8% of the best in all four comparisons. The
+frozen model estimated 25.10 requests/s for one encoder. The measured
+1E:3PD configuration completed about 34 requests/s in the high-load window.
+This difference matters for the sizing decision on this cohort.
+
+The MMMU cohort used 720 single-image validation questions with fixed
+64-token generation. Of those images, 700 were resized to fit the frozen
+encoder calibration range. The result measures serving performance for this
+preprocessed cohort. The synthetic run demonstrates a useful unequal
+recommendation under its tested conditions, and the MMMU sweep quantifies
+how far the recommendation can fall short on a different workload.
+
+[MMMU protocol](experiments/four-gpu/#mmmu-replay-and-ranking) ·
+[Frozen MMMU plan](experiments/four-gpu/results/mmmu/plan.json) ·
+[Measured MMMU results](experiments/four-gpu/results/mmmu/results.json)
+
 ## Earlier four-H800 MMMU split sweep
 
 **2E:2PD achieved the highest completed-request throughput in both rounds**

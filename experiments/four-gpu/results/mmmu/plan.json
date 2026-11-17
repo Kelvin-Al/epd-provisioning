@@ -1,0 +1,164 @@
+{
+  "gpus": 4,
+  "sampling_rps": 5.0,
+  "deployment": {
+    "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+    "kv_cache_memory_bytes": 1073741824
+  },
+  "pd_chunk_tokens": 512,
+  "encoder_max_seqs": 1,
+  "replay": {
+    "dataset_path": "cohort/requests.jsonl",
+    "dataset": "MMMU/MMMU",
+    "dataset_revision": "876ce5cb130f7f7e290ce4d9984357737d4db5cf",
+    "split": "validation",
+    "source_manifest_sha256": "c5b35f2eac8164ad6f77e358c29035429be5221819354229b6e3e1cc4363814a",
+    "cohort_sha256": "91c1a17aaee82b32a5b06ee6d6afd025d0171a66261a7787f3fce4e2632817e6",
+    "image_bytes_sha256": "f0ea553e03d8e533fda33187c7417b9b79436437ce8166fdaa8d58871a5b701a",
+    "resized_images": 700,
+    "visual_token_range": [
+      1600,
+      7744
+    ],
+    "prompts": 720,
+    "output_len": 64,
+    "seed": 9197
+  },
+  "runner_sha256": "2edc509fda6f5104bba4b20be1e0907c38ada4075a4e987585cafd977285c5d8",
+  "upstream_runner_sha256": "53e58c6068209d9b35a38c8c66901748d56598e83f6fb7ea682135cb8b198243",
+  "method_runner_sha256": "82d73adec6d63da90ec4c5b7c59971a6c374eddb0007173bbd98f79dfc0c56ca",
+  "primary_metric": "PD successful completions per second in central 60% of actual arrivals",
+  "calibration_input_hashes": {
+    "model_sha256": "91e22357828838743e77796a0eae05bb0e9cc0ed54fb46eaf06e04e2a63025ec",
+    "workload_sha256": "bd0fc4538c8dc53fc8718f5bdfda8bffee05c22e323720566007dab341ec3fa9"
+  },
+  "public_planner_sha256": "7da8e912ee40bbda1853d0745da1c671588c0aa948090334e0d0f6dc910150a3",
+  "native_plan_sha256": "a9c7a1b5b63b47399ae5f8f6430801b0ced59423d5ae2001ac7b1f32b7cdc133",
+  "rates_are_model_estimates": true,
+  "stage_rate_inputs": {
+    "e_rate_upper_bound_rps": 25.100567874609354,
+    "pd_rate_rps": 13.71292023566119,
+    "encoder_bottleneck_lane": "X",
+    "mean_normalized_lane_ms": {
+      "H": 16.190241214180805,
+      "M": 15.052193055712769,
+      "C": 0.0,
+      "X": 39.839736096630574,
+      "G": 29.004507808316582,
+      "R": 14.57831524797489,
+      "media_decode": 21.202856390434125
+    },
+    "mean_serial_e_ms": 60.8099104755308,
+    "request_count": 720,
+    "model_sha256": "91e22357828838743e77796a0eae05bb0e9cc0ed54fb46eaf06e04e2a63025ec",
+    "workload_sha256": "bd0fc4538c8dc53fc8718f5bdfda8bffee05c22e323720566007dab341ec3fa9",
+    "encoder_visual_token_range": [
+      1600,
+      7744
+    ],
+    "pd_rate_bounds_rps": [
+      13.71292023566119,
+      15.20003948317361
+    ],
+    "basis": "encoder_load_upper_bound_and_pd_packing_model"
+  },
+  "decision": {
+    "encoder_gpus": 2,
+    "pd_gpus": 2,
+    "optimal_encoder_gpu_counts": [
+      2
+    ],
+    "fractional_encoder_gpus": 1.413211839832821,
+    "fractional_boundary_rps": 35.47241970692529,
+    "boundary_rps": 27.42584047132238,
+    "nominal_boundary_at_selected_split_rps": 27.42584047132238,
+    "stage_rates_rps": {
+      "e": 25.100567874609354,
+      "pd": 13.71292023566119
+    },
+    "rate_ratio": 1.8304319899224653,
+    "optimal_ratio_interval": [
+      0.5,
+      2.0
+    ],
+    "multiplicative_ratio_margin": 1.0926382466057738,
+    "bottleneck": "pd"
+  },
+  "encoder_counts": {
+    "1e": 1,
+    "2e": 2,
+    "3e": 3
+  },
+  "predicted_even_rps": 27.42584047132238,
+  "waves": [
+    {
+      "dataset_path": "cohort/requests.jsonl",
+      "dataset": "MMMU/MMMU",
+      "dataset_revision": "876ce5cb130f7f7e290ce4d9984357737d4db5cf",
+      "split": "validation",
+      "source_manifest_sha256": "c5b35f2eac8164ad6f77e358c29035429be5221819354229b6e3e1cc4363814a",
+      "cohort_sha256": "91c1a17aaee82b32a5b06ee6d6afd025d0171a66261a7787f3fce4e2632817e6",
+      "image_bytes_sha256": "f0ea553e03d8e533fda33187c7417b9b79436437ce8166fdaa8d58871a5b701a",
+      "resized_images": 700,
+      "visual_token_range": [
+        1600,
+        7744
+      ],
+      "prompts": 720,
+      "output_len": 64,
+      "seed": 9197,
+      "name": "low",
+      "rate": 20.569
+    },
+    {
+      "dataset_path": "cohort/requests.jsonl",
+      "dataset": "MMMU/MMMU",
+      "dataset_revision": "876ce5cb130f7f7e290ce4d9984357737d4db5cf",
+      "split": "validation",
+      "source_manifest_sha256": "c5b35f2eac8164ad6f77e358c29035429be5221819354229b6e3e1cc4363814a",
+      "cohort_sha256": "91c1a17aaee82b32a5b06ee6d6afd025d0171a66261a7787f3fce4e2632817e6",
+      "image_bytes_sha256": "f0ea553e03d8e533fda33187c7417b9b79436437ce8166fdaa8d58871a5b701a",
+      "resized_images": 700,
+      "visual_token_range": [
+        1600,
+        7744
+      ],
+      "prompts": 720,
+      "output_len": 64,
+      "seed": 9197,
+      "name": "between",
+      "rate": 27.426
+    },
+    {
+      "dataset_path": "cohort/requests.jsonl",
+      "dataset": "MMMU/MMMU",
+      "dataset_revision": "876ce5cb130f7f7e290ce4d9984357737d4db5cf",
+      "split": "validation",
+      "source_manifest_sha256": "c5b35f2eac8164ad6f77e358c29035429be5221819354229b6e3e1cc4363814a",
+      "cohort_sha256": "91c1a17aaee82b32a5b06ee6d6afd025d0171a66261a7787f3fce4e2632817e6",
+      "image_bytes_sha256": "f0ea553e03d8e533fda33187c7417b9b79436437ce8166fdaa8d58871a5b701a",
+      "resized_images": 700,
+      "visual_token_range": [
+        1600,
+        7744
+      ],
+      "prompts": 720,
+      "output_len": 64,
+      "seed": 9197,
+      "name": "overload",
+      "rate": 34.282
+    }
+  ],
+  "orders": [
+    [
+      "1e",
+      "2e",
+      "3e"
+    ],
+    [
+      "3e",
+      "2e",
+      "1e"
+    ]
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "gpus": 4,
+  "sampling_rps": 5.0,
+  "deployment": {
+    "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+    "kv_cache_memory_bytes": 1073741824
+  },
+  "pd_chunk_tokens": 512,
+  "encoder_max_seqs": 1,
+  "replay": {
+    "dataset_path": "cohort/requests.jsonl",
+    "dataset": "MMMU/MMMU",
+    "dataset_revision": "876ce5cb130f7f7e290ce4d9984357737d4db5cf",
+    "split": "validation",
+    "source_manifest_sha256": "c5b35f2eac8164ad6f77e358c29035429be5221819354229b6e3e1cc4363814a",
+    "cohort_sha256": "91c1a17aaee82b32a5b06ee6d6afd025d0171a66261a7787f3fce4e2632817e6",
+    "image_bytes_sha256": "f0ea553e03d8e533fda33187c7417b9b79436437ce8166fdaa8d58871a5b701a",
+    "resized_images": 700,
+    "visual_token_range": [
+      1600,
+      7744
+    ],
+    "prompts": 720,
+    "output_len": 64,
+    "seed": 9197
+  },
+  "runner_sha256": "2edc509fda6f5104bba4b20be1e0907c38ada4075a4e987585cafd977285c5d8",
+  "upstream_runner_sha256": "53e58c6068209d9b35a38c8c66901748d56598e83f6fb7ea682135cb8b198243",
+  "method_runner_sha256": "82d73adec6d63da90ec4c5b7c59971a6c374eddb0007173bbd98f79dfc0c56ca",
+  "primary_metric": "PD successful completions per second in central 60% of actual arrivals"
+}
