@@ -1,0 +1,44 @@
+{
+  "offered_rps": 34.27,
+  "gpus": 4,
+  "encoder_counts_by_round": [
+    [
+      1,
+      2,
+      3
+    ],
+    [
+      3,
+      2,
+      1
+    ]
+  ],
+  "ec_policy": "fresh workers, empty EC directory, request-scoped media keys",
+  "replay": {
+    "dataset_path": "cohort/requests.jsonl",
+    "dataset": "MMMU/MMMU",
+    "dataset_revision": "876ce5cb130f7f7e290ce4d9984357737d4db5cf",
+    "split": "validation",
+    "source_manifest_sha256": "c5b35f2eac8164ad6f77e358c29035429be5221819354229b6e3e1cc4363814a",
+    "cohort_sha256": "91c1a17aaee82b32a5b06ee6d6afd025d0171a66261a7787f3fce4e2632817e6",
+    "image_bytes_sha256": "f0ea553e03d8e533fda33187c7417b9b79436437ce8166fdaa8d58871a5b701a",
+    "resized_images": 700,
+    "visual_token_range": [
+      1600,
+      7744
+    ],
+    "prompts": 720,
+    "output_len": 64,
+    "seed": 9197
+  },
+  "deployment": {
+    "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+    "kv_cache_memory_bytes": 1073741824
+  },
+  "pd_chunk_tokens": 512,
+  "calibration_sha256": "91e22357828838743e77796a0eae05bb0e9cc0ed54fb46eaf06e04e2a63025ec",
+  "runner_sha256": "67136d915da4b0077f9fe3e5578b5bdffb9e37214cfc3957eeaa79bc71a0537c",
+  "proxy_sha256": "d0c7bbcdc60e66c4d6f838c1346fe461e73f80b6d8d6da8b782caccafd116f1e",
+  "audit_sha256": "56be9d553ba04ac1a279035cea95eabe4892b5225eaabb9d604b20d057350816",
+  "sweep_sha256": "fcffb83d0351bf36387a971622edd92667838112fc737f68f1c6acff46082853"
+}

@@ -34,12 +34,13 @@ to this workload and node.
 [Measured results](experiments/four-gpu/results/synthetic/results.json) ·
 [Evidence scope and MMMU follow-up](https://github.com/Kelvin-Al/epd-provisioning/issues/1)
 
-### MMMU follow-up
+### MMMU replay with EC reuse across loads
 
 Using the same sizing and replay procedure on a fixed MMMU validation cohort,
 the allocator recommended **2E:2PD**, the equal split. Each of the three
 feasible splits ran at three loads on one four-H800 node, in two reversed
-orders. All 12,960 measured requests completed, including drain.
+orders. The low, middle and high loads shared the EC directory within each
+split deployment. All 12,960 measured requests completed, including drain.
 
 At the highest load, 34.27 actual offered requests/s, 2E:2PD ranked **second
 in both rounds**. Its in-window completion rate was 82.4% and 79.9% of the
@@ -57,17 +58,87 @@ recommendation was within 1.8% of the best in all four comparisons. The
 frozen model estimated 25.10 requests/s for one encoder. The measured
 1E:3PD configuration completed about 34 requests/s in the high-load window.
 This difference matters for the sizing decision on this cohort.
+The later cache audit below explains this discrepancy. The original
+custom-image adapter used the client's default seed, 0, although the replay
+manifest declared 9197. All arms of this replay used that same default.
 
 The MMMU cohort used 720 single-image validation questions with fixed
 64-token generation. Of those images, 700 were resized to fit the frozen
 encoder calibration range. The result measures serving performance for this
 preprocessed cohort. The synthetic run demonstrates a useful unequal
 recommendation under its tested conditions, and the MMMU sweep quantifies
-how far the recommendation can fall short on a different workload.
+the recommendation's gap under its repeated-image cache conditions.
 
 [MMMU protocol](experiments/four-gpu/#mmmu-replay-and-ranking) ·
 [Frozen MMMU plan](experiments/four-gpu/results/mmmu/plan.json) ·
 [Measured MMMU results](experiments/four-gpu/results/mmmu/results.json)
+
+### Cold MMMU comparison on four H800 GPUs
+
+**2E:2PD was the measured best cold split in both rounds.** The completed
+rerun compared all three feasible splits on one node, with nominal
+34.27 requests/s and actual seeded arrivals of 34.473–34.474 requests/s.
+Round two reversed split order. Every wave started fresh workers and empty
+EC storage. Per-request media keys ensured that repeated images also required
+new visual encoding, with matching keys for the E-to-PD handoff.
+
+| Round | 1E:3PD completions/s | 2E:2PD completions/s (recommended) | 3E:1PD completions/s | Recommended gain over second place |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 23.17 | **25.90** | 13.14 | **11.8%** |
+| 2 | 23.25 | **26.21** | 13.45 | **12.7%** |
+
+Each wave completed all 720 requests with zero failures and recorded
+**720 visual forward calls, 720 encoded images, zero EC hits and zero
+resident-cache hits**. The primary completion rate uses the middle 60%
+of actual arrivals. At 2E:2PD, P90 time to first token was 6.48 s and
+5.69 s. At 1E:3PD, it was 9.63 s and 9.68 s. Both configurations had
+queueing at this offered load.
+
+### Why warm EC changed the winning split
+
+A separate same-node four-H800 audit held the split at 1E:3PD and compared
+cold, warm, warm and cold waves. Every measured wave started fresh workers.
+Warm waves used an EC directory prefilled with the same MMMU images.
+
+| EC condition | Visual forward calls per wave | EC hit rate | E completions/s | P90 TTFT |
+| --- | ---: | ---: | ---: | ---: |
+| Cold, empty directory | 707 | 1.8% | 23.63–24.09 | 7.86–8.11 s |
+| Warm, prefilled directory | 0 | 100% | 33.88–34.03 | 0.47–0.75 s |
+
+The audit's cold waves allowed natural within-wave reuse, giving 13 hits
+among 720 requests. The cold three-split experiment above enforced zero
+reuse. Warm EC served embeddings directly and eliminated visual forward
+calls. This made one E sufficient to keep up with the offered load, freeing
+the fourth GPU for PD. The original MMMU high-load wave followed two
+replays of the same images, so its 1E:3PD win reflects warm EC conditions.
+
+The cache-independent model estimated 25.10 requests/s per E and 13.71 per
+PD. Cold E measurements stayed below the 27.43 requests/s boundary at
+which 1E:3PD would beat 2E:2PD under those PD estimates. The cold sweep
+supports the recommendation for its tested conditions. Cache-aware
+deployment needs an E capacity estimate matched to the observed hit rate.
+
+Both audits use the same preprocessed 720-question MMMU validation cohort,
+Qwen2.5-VL-3B-Instruct, vLLM 0.33.0, 1 GiB PD KV storage, 512-token PD
+chunks and fixed 64-token generations. Of the images, 700 were resized to
+the frozen encoder calibration range. The cold sweep explicitly forwards
+seed 9197 and request count to the client. Earlier replays and the
+cold/warm audit used client seed 0. The separate experiments also used
+different nodes, so their absolute rates include node and order differences.
+Ranking and cache effects are supported by each experiment's internally
+matched comparisons. Formal campaign acceptance remains INCONCLUSIVE
+pending the complete acceptance evidence in issue #1.
+
+The first cold-sweep attempt failed because its proxy modification assigned
+different EC keys to E and PD. The corrected rerun produced the six complete
+waves above. The original synthetic results and earlier MMMU observations
+remain available alongside these measurements.
+
+[Cold and warm experiment code](experiments/ec-cache/) ·
+[Cold sweep plan](experiments/ec-cache/results/cold/plan.json) ·
+[Cold sweep results](experiments/ec-cache/results/cold/results.json) ·
+[Cold/warm audit plan](experiments/ec-cache/results/cold-warm/plan.json) ·
+[Cold/warm audit results](experiments/ec-cache/results/cold-warm/results.json)
 
 ## Earlier four-H800 MMMU split sweep
 

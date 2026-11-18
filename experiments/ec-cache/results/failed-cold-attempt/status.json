@@ -1,0 +1,12 @@
+{
+  "execution_status": "FAILED",
+  "exit_code": "1:0",
+  "elapsed": "00:07:23",
+  "complete_comparison": false,
+  "campaign_verdict": "INCONCLUSIVE",
+  "failed_wave": "round-1-1e",
+  "failure": "PD worker exited after receiving a metadata reference whose EC key did not match the encoder-produced embedding.",
+  "worker_exception": "AssertionError: Expected number of multimodal embeddings to match number of input items: 1, but got len(mm_embeddings)=0 instead.",
+  "remedy": "Assign the request-scoped media UUID before constructing both the encoder request and the rewritten PD request.",
+  "rerun_evidence": "../cold/results.json"
+}

@@ -70,3 +70,9 @@ each load and round, the results record the recommendation's measured rank
 and percentage gap to the best observed completion rate. Use the highest
 offered load as the primary ranking and include the queue and latency
 results when interpreting small gaps.
+
+The original custom-image adapter omitted the client seed and request-count
+flags. Its recorded MMMU replay used client seed 0 and the 720 supplied
+rows. The later [cold EC sweep](../ec-cache/README.md) explicitly forwards
+seed 9197 and request count. See the root README for the cold and warm
+cache comparisons and their scope.

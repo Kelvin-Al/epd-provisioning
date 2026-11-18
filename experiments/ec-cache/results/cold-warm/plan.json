@@ -1,0 +1,36 @@
+{
+  "rate_rps": 34.27,
+  "prime_rps": 12,
+  "gpus": 4,
+  "split": [
+    1,
+    3
+  ],
+  "replay": {
+    "dataset_path": "cohort/requests.jsonl",
+    "dataset": "MMMU/MMMU",
+    "dataset_revision": "876ce5cb130f7f7e290ce4d9984357737d4db5cf",
+    "split": "validation",
+    "source_manifest_sha256": "c5b35f2eac8164ad6f77e358c29035429be5221819354229b6e3e1cc4363814a",
+    "cohort_sha256": "91c1a17aaee82b32a5b06ee6d6afd025d0171a66261a7787f3fce4e2632817e6",
+    "image_bytes_sha256": "f0ea553e03d8e533fda33187c7417b9b79436437ce8166fdaa8d58871a5b701a",
+    "resized_images": 700,
+    "visual_token_range": [
+      1600,
+      7744
+    ],
+    "prompts": 720,
+    "output_len": 64,
+    "seed": 9197
+  },
+  "order": [
+    "cold",
+    "warm",
+    "warm",
+    "cold"
+  ],
+  "baseline_boundary_rps": 27.42584047132238,
+  "runner_sha256": "dfe0ac948321aca50ac6514c8b8658aba47c07552e6656306c216af12fb4c5b0",
+  "calibration_sha256": "91e22357828838743e77796a0eae05bb0e9cc0ed54fb46eaf06e04e2a63025ec",
+  "audit_sha256": "56be9d553ba04ac1a279035cea95eabe4892b5225eaabb9d604b20d057350816"
+}
